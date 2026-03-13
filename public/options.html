@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Polyglot Translate Settings</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main class="container">
+      <section class="hero">
+        <p class="eyebrow">Polyglot Translate</p>
+        <h1>Provider Control Room</h1>
+        <p class="hero-copy">
+          Tune fallback order, model selection and API credentials from one place. Local health scores update
+          after each translation attempt.
+        </p>
+      </section>
+
+      <section class="layout">
+        <form id="settings-form" class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Request Defaults</h2>
+              <p>These values are applied to every new translation request.</p>
+            </div>
+            <button type="submit">Save Settings</button>
+          </div>
+
+          <div class="field-grid">
+            <label>
+              Default Target Language
+              <input id="target-language" type="text" value="zh-CN" />
+            </label>
+
+            <label>
+              Speed Mode
+              <select id="speed-mode">
+                <option value="fast">fast</option>
+                <option value="balanced">balanced</option>
+                <option value="quality">quality</option>
+              </select>
+            </label>
+
+            <label class="span-2">
+              Provider Priority (comma separated)
+              <input id="provider-priority" type="text" value="openrouter,openai,anthropic" />
+            </label>
+          </div>
+
+          <section class="section-block">
+            <div class="section-title">
+              <h3>Provider Models</h3>
+              <p>Use lightweight models for `fast`, or higher quality models when latency is less important.</p>
+            </div>
+            <div class="field-grid">
+              <label>
+                OpenRouter Model
+                <input id="openrouter-model" type="text" />
+              </label>
+              <label>
+                OpenAI Model
+                <input id="openai-model" type="text" />
+              </label>
+              <label>
+                Anthropic Model
+                <input id="anthropic-model" type="text" />
+              </label>
+            </div>
+          </section>
+
+          <section class="section-block">
+            <div class="section-title">
+              <h3>API Credentials</h3>
+              <p>Keys stay in extension storage and never enter the content script.</p>
+            </div>
+            <div class="field-grid">
+              <label>
+                OpenRouter API Key
+                <input id="openrouter-key" type="password" />
+              </label>
+              <label>
+                OpenAI API Key
+                <input id="openai-key" type="password" />
+              </label>
+              <label>
+                Anthropic API Key
+                <input id="anthropic-key" type="password" />
+              </label>
+            </div>
+          </section>
+
+          <p id="saved-state" class="saved-state"></p>
+        </form>
+
+        <aside class="panel health-panel">
+          <div class="panel-head">
+            <div>
+              <h2>Provider Health</h2>
+              <p>Recent performance learned from local translation history.</p>
+            </div>
+          </div>
+
+          <div id="provider-health" class="health-grid">
+            <article class="health-card" data-provider="openrouter">
+              <div class="health-top">
+                <strong>OpenRouter</strong>
+                <span data-field="badge">cold</span>
+              </div>
+              <p class="health-meta">TTFT <span data-field="ttft">-</span></p>
+              <p class="health-meta">Latency <span data-field="latency">-</span></p>
+              <p class="health-meta">Success <span data-field="success">-</span></p>
+              <p class="health-note" data-field="note">No local samples yet.</p>
+            </article>
+
+            <article class="health-card" data-provider="openai">
+              <div class="health-top">
+                <strong>OpenAI</strong>
+                <span data-field="badge">cold</span>
+              </div>
+              <p class="health-meta">TTFT <span data-field="ttft">-</span></p>
+              <p class="health-meta">Latency <span data-field="latency">-</span></p>
+              <p class="health-meta">Success <span data-field="success">-</span></p>
+              <p class="health-note" data-field="note">No local samples yet.</p>
+            </article>
+
+            <article class="health-card" data-provider="anthropic">
+              <div class="health-top">
+                <strong>Anthropic</strong>
+                <span data-field="badge">cold</span>
+              </div>
+              <p class="health-meta">TTFT <span data-field="ttft">-</span></p>
+              <p class="health-meta">Latency <span data-field="latency">-</span></p>
+              <p class="health-meta">Success <span data-field="success">-</span></p>
+              <p class="health-note" data-field="note">No local samples yet.</p>
+            </article>
+          </div>
+        </aside>
+      </section>
+    </main>
+    <script src="options.js"></script>
+  </body>
+</html>

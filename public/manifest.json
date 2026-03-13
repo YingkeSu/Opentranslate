@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Polyglot Translate",
+  "version": "0.1.0",
+  "description": "Fast streaming translation extension with multi-LLM providers.",
+  "permissions": ["storage", "contextMenus", "activeTab", "scripting", "tabs"],
+  "host_permissions": [
+    "<all_urls>",
+    "https://api.openai.com/*",
+    "https://api.anthropic.com/*",
+    "https://openrouter.ai/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Polyglot Translate",
+    "default_popup": "popup.html"
+  },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "commands": {
+    "translate-selection": {
+      "suggested_key": {
+        "default": "Alt+T"
+      },
+      "description": "Translate selected text"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "polyglot-translate-extension",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MV3 browser translation extension with streaming and multi-provider adapters",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "vitest run --config vitest.config.ts",
+    "test:e2e": "npm run build && playwright test --config playwright.config.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@types/chrome": "^0.1.11",
+    "@types/node": "^25.5.0",
+    "esbuild": "^0.25.9",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}
