@@ -16,6 +16,10 @@ function mergeSettings(stored: Partial<ExtensionSettings> | undefined): Extensio
     ...DEFAULT_SETTINGS,
     ...stored,
     providerPriority: stored?.providerPriority?.length ? stored.providerPriority : [...DEFAULT_SETTINGS.providerPriority],
+    baseURLs: {
+      ...DEFAULT_SETTINGS.baseURLs,
+      ...(stored?.baseURLs ?? {})
+    },
     models: {
       ...DEFAULT_SETTINGS.models,
       ...(stored?.models ?? {})
@@ -36,11 +40,10 @@ function emptyMetrics(): ProviderMetrics {
 function mergeMetrics(
   stored: Partial<Record<keyof ProviderMetricsSnapshot, Partial<ProviderMetrics>>> | undefined
 ): ProviderMetricsSnapshot {
-  return {
-    openrouter: { ...emptyMetrics(), ...(stored?.openrouter ?? {}) },
-    openai: { ...emptyMetrics(), ...(stored?.openai ?? {}) },
-    anthropic: { ...emptyMetrics(), ...(stored?.anthropic ?? {}) }
-  };
+  return ALL_PROVIDERS.reduce<ProviderMetricsSnapshot>((acc, provider) => {
+    acc[provider] = { ...emptyMetrics(), ...(stored?.[provider] ?? {}) };
+    return acc;
+  }, {} as ProviderMetricsSnapshot);
 }
 
 export async function getSettings(): Promise<ExtensionSettings> {

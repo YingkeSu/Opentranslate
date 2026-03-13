@@ -2,6 +2,7 @@ import type { ErrorCode, ProviderName, TranslateRequest } from "../../shared/typ
 
 export type AdapterContext = {
   apiKey: string;
+  baseURL: string;
   model: string;
   signal: AbortSignal;
 };

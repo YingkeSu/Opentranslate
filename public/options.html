@@ -12,8 +12,8 @@
         <p class="eyebrow">Polyglot Translate</p>
         <h1>Provider Control Room</h1>
         <p class="hero-copy">
-          Tune fallback order, model selection and API credentials from one place. Local health scores update
-          after each translation attempt.
+          Tune defaults and configure one provider at a time. The selected provider editor updates model and API
+          credentials without dumping every vendor field onto the page.
         </p>
       </section>
 
@@ -43,50 +43,45 @@
             </label>
 
             <label class="span-2">
-              Provider Priority (comma separated)
-              <input id="provider-priority" type="text" value="openrouter,openai,anthropic" />
+              Primary Provider
+              <select id="primary-provider"></select>
             </label>
           </div>
 
           <section class="section-block">
             <div class="section-title">
-              <h3>Provider Models</h3>
-              <p>Use lightweight models for `fast`, or higher quality models when latency is less important.</p>
+              <h3>Provider Editor</h3>
+              <p>Select the supplier you want to edit. Only that supplier's model and API key are shown.</p>
             </div>
-            <div class="field-grid">
-              <label>
-                OpenRouter Model
-                <input id="openrouter-model" type="text" />
-              </label>
-              <label>
-                OpenAI Model
-                <input id="openai-model" type="text" />
-              </label>
-              <label>
-                Anthropic Model
-                <input id="anthropic-model" type="text" />
-              </label>
-            </div>
-          </section>
 
-          <section class="section-block">
-            <div class="section-title">
-              <h3>API Credentials</h3>
-              <p>Keys stay in extension storage and never enter the content script.</p>
-            </div>
-            <div class="field-grid">
-              <label>
-                OpenRouter API Key
-                <input id="openrouter-key" type="password" />
+            <div class="provider-editor">
+              <label class="span-2">
+                Provider to Configure
+                <select id="config-provider"></select>
               </label>
-              <label>
-                OpenAI API Key
-                <input id="openai-key" type="password" />
-              </label>
-              <label>
-                Anthropic API Key
-                <input id="anthropic-key" type="password" />
-              </label>
+
+              <div class="field-grid">
+                <label>
+                  <span id="provider-model-label">Model</span>
+                  <input id="provider-model" type="text" />
+                </label>
+
+                <label>
+                  Base URL
+                  <input id="provider-base-url" type="url" />
+                </label>
+
+                <label class="span-2">
+                  <span id="provider-key-label">API Key</span>
+                  <input id="provider-key" type="password" />
+                </label>
+              </div>
+
+              <p id="provider-template-note" class="provider-template-note"></p>
+
+              <div class="editor-actions">
+                <button id="reset-provider-template" type="button" class="secondary-button">Reset Template Defaults</button>
+              </div>
             </div>
           </section>
 
@@ -127,6 +122,50 @@
             <article class="health-card" data-provider="anthropic">
               <div class="health-top">
                 <strong>Anthropic</strong>
+                <span data-field="badge">cold</span>
+              </div>
+              <p class="health-meta">TTFT <span data-field="ttft">-</span></p>
+              <p class="health-meta">Latency <span data-field="latency">-</span></p>
+              <p class="health-meta">Success <span data-field="success">-</span></p>
+              <p class="health-note" data-field="note">No local samples yet.</p>
+            </article>
+
+            <article class="health-card" data-provider="groq">
+              <div class="health-top">
+                <strong>Groq</strong>
+                <span data-field="badge">cold</span>
+              </div>
+              <p class="health-meta">TTFT <span data-field="ttft">-</span></p>
+              <p class="health-meta">Latency <span data-field="latency">-</span></p>
+              <p class="health-meta">Success <span data-field="success">-</span></p>
+              <p class="health-note" data-field="note">No local samples yet.</p>
+            </article>
+
+            <article class="health-card" data-provider="together">
+              <div class="health-top">
+                <strong>Together AI</strong>
+                <span data-field="badge">cold</span>
+              </div>
+              <p class="health-meta">TTFT <span data-field="ttft">-</span></p>
+              <p class="health-meta">Latency <span data-field="latency">-</span></p>
+              <p class="health-meta">Success <span data-field="success">-</span></p>
+              <p class="health-note" data-field="note">No local samples yet.</p>
+            </article>
+
+            <article class="health-card" data-provider="fireworks">
+              <div class="health-top">
+                <strong>Fireworks AI</strong>
+                <span data-field="badge">cold</span>
+              </div>
+              <p class="health-meta">TTFT <span data-field="ttft">-</span></p>
+              <p class="health-meta">Latency <span data-field="latency">-</span></p>
+              <p class="health-meta">Success <span data-field="success">-</span></p>
+              <p class="health-note" data-field="note">No local samples yet.</p>
+            </article>
+
+            <article class="health-card" data-provider="custom-openai">
+              <div class="health-top">
+                <strong>Custom OpenAI-Compatible</strong>
                 <span data-field="badge">cold</span>
               </div>
               <p class="health-meta">TTFT <span data-field="ttft">-</span></p>

@@ -8,9 +8,51 @@
   </head>
   <body>
     <main class="popup">
-      <h1>Polyglot Translate</h1>
-      <p id="status">Ready</p>
-      <button id="open-options" type="button">Open Settings</button>
+      <section class="hero">
+        <p class="eyebrow">Polyglot Translate</p>
+        <h1>Quick Setup</h1>
+        <p id="status" class="status">Checking background service...</p>
+      </section>
+
+      <form id="quick-settings" class="form">
+        <label>
+          Target language
+          <input id="target-language" type="text" placeholder="zh-CN" />
+        </label>
+
+        <label>
+          Primary provider
+          <select id="primary-provider"></select>
+        </label>
+
+        <section class="provider-block">
+          <div class="provider-block__head">
+            <div>
+              <h2>Provider Config</h2>
+              <p>Choose one provider at a time, then edit its credential.</p>
+            </div>
+          </div>
+
+          <label>
+            Provider to configure
+            <select id="config-provider"></select>
+          </label>
+
+          <label>
+            <span id="provider-key-label">API key</span>
+            <input id="provider-key" type="password" />
+          </label>
+
+          <p id="provider-template-note" class="provider-note"></p>
+        </section>
+
+        <div class="actions">
+          <button type="submit">Save</button>
+          <button id="open-options" type="button" class="secondary">Advanced</button>
+        </div>
+      </form>
+
+      <p class="hint">Use `Alt+T`, right click, or the floating translate button after selecting text.</p>
     </main>
     <script src="popup.js"></script>
   </body>

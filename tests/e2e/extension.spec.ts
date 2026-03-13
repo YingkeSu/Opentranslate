@@ -222,15 +222,50 @@ test.beforeEach(async () => {
   await installFetchMock([]);
 });
 
+test("configures provider and api keys from the popup", async () => {
+  const page = await context.newPage();
+  await page.goto(`chrome-extension://${extensionId}/popup.html`);
+
+  await expect(page.locator("#status")).toContainText("Background service ready.");
+
+  await page.getByLabel("Target language").fill("fr");
+  await page.getByLabel("Primary provider").selectOption("openai");
+  await page.getByLabel("Provider to configure").selectOption("openai");
+  await page.getByLabel("OpenAI API key").fill("updated-openai-key");
+  await page.getByLabel("Provider to configure").selectOption("openrouter");
+  await page.getByLabel("OpenRouter API key").fill("updated-openrouter-key");
+  await page.getByRole("button", { name: "Save" }).click();
+
+  await expect(page.locator("#status")).toContainText("Saved quick setup");
+
+  const snapshot = (await serviceWorker.evaluate(async () => {
+    const settings = await chrome.storage.sync.get("polyglot.settings");
+    const secrets = await chrome.storage.session.get("polyglot.secrets");
+    return {
+      settings: settings["polyglot.settings"] as ExtensionSettings,
+      secrets: secrets["polyglot.secrets"] as ProviderSecrets
+    };
+  })) as { secrets: ProviderSecrets; settings: ExtensionSettings };
+
+  expect(snapshot.settings.targetLanguage).toBe("fr");
+  expect(snapshot.settings.providerPriority[0]).toBe("openai");
+  expect(snapshot.secrets.openai).toBe("updated-openai-key");
+  expect(snapshot.secrets.openrouter).toBe("updated-openrouter-key");
+  await page.close();
+});
+
 test("saves settings through the extension options page", async () => {
   const page = await context.newPage();
   await page.goto(`chrome-extension://${extensionId}/options.html`);
 
   await page.getByLabel("Default Target Language").fill("fr");
   await page.getByLabel("Speed Mode").selectOption("quality");
-  await page.getByLabel("Provider Priority (comma separated)").fill("openai,openrouter,anthropic");
-  await page.getByLabel("OpenAI Model").fill("gpt-4.1-mini");
-  await page.getByLabel("OpenAI API Key").fill("updated-openai-key");
+  await page.getByLabel("Primary Provider").selectOption("openai");
+  await page.getByLabel("Provider to Configure").selectOption("groq");
+  await expect(page.getByLabel("Base URL")).toHaveValue("https://api.groq.com/openai/v1");
+  await page.getByLabel("Provider to Configure").selectOption("openai");
+  await page.getByLabel("OpenAI model").fill("gpt-4.1-mini");
+  await page.getByLabel("OpenAI API key").fill("updated-openai-key");
   await page.getByRole("button", { name: "Save Settings" }).click();
 
   await expect(page.locator("#saved-state")).toContainText("Saved at");
@@ -246,7 +281,15 @@ test("saves settings through the extension options page", async () => {
 
   expect(snapshot.settings.targetLanguage).toBe("fr");
   expect(snapshot.settings.speedMode).toBe("quality");
-  expect(snapshot.settings.providerPriority).toEqual(["openai", "openrouter", "anthropic"]);
+  expect(snapshot.settings.providerPriority).toEqual([
+    "openai",
+    "openrouter",
+    "anthropic",
+    "groq",
+    "together",
+    "fireworks",
+    "custom-openai"
+  ]);
   expect(snapshot.settings.models.openai).toBe("gpt-4.1-mini");
   expect(snapshot.secrets.openai).toBe("updated-openai-key");
 

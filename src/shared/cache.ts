@@ -15,8 +15,15 @@ function cacheKey(input: string): string {
   return `${CACHE_PREFIX}${Math.abs(hash)}`;
 }
 
-export function makeCacheIdentity(text: string, src: string | undefined, tgt: string, model: string): string {
-  return `${text.trim()}::${src ?? "auto"}::${tgt}::${model}`;
+export function makeCacheIdentity(
+  text: string,
+  src: string | undefined,
+  tgt: string,
+  provider: string,
+  baseURL: string,
+  model: string
+): string {
+  return `${text.trim()}::${src ?? "auto"}::${tgt}::${provider}::${baseURL.trim()}::${model}`;
 }
 
 export async function getCached(identity: string): Promise<string | null> {

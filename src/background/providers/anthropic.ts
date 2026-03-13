@@ -7,11 +7,15 @@ import {
 } from "./base";
 import type { TranslateRequest } from "../../shared/types";
 
+function normalizeBaseURL(baseURL: string): string {
+  return baseURL.replace(/\/+$/, "");
+}
+
 export class AnthropicAdapter implements ProviderAdapter {
   readonly name = "anthropic" as const;
 
   async *stream(req: TranslateRequest, context: AdapterContext): AsyncGenerator<string> {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetch(`${normalizeBaseURL(context.baseURL)}/messages`, {
       method: "POST",
       headers: {
         "content-type": "application/json",

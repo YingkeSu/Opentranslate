@@ -122,6 +122,24 @@ form.panel {
   margin-bottom: 14px;
 }
 
+.provider-editor {
+  padding: 16px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.94), rgba(241, 245, 249, 0.9));
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.provider-template-note {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.editor-actions {
+  margin-top: 14px;
+}
+
 label {
   display: grid;
   gap: 8px;
@@ -169,6 +187,12 @@ button {
 
 button:hover {
   transform: translateY(-1px);
+}
+
+.secondary-button {
+  background: #e2e8f0;
+  color: #0f172a;
+  box-shadow: none;
 }
 
 .saved-state {

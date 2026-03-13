@@ -1,3 +1,4 @@
+import { PROVIDER_LABELS } from "../shared/types";
 import type { ContentMessage, PortRequest, StreamEvent, TranslateRequest } from "../shared/types";
 import { getSettings } from "../shared/storage";
 
@@ -132,7 +133,7 @@ function handleStreamEvent(event: StreamEvent): void {
   }
 
   if (event.type === "start") {
-    ui.status.textContent = `Provider: ${event.provider}/${event.model}`;
+    ui.status.textContent = `Provider: ${PROVIDER_LABELS[event.provider]}/${event.model}`;
     return;
   }
 

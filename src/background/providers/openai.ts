@@ -1,17 +1,19 @@
-import {
-  buildPrompt,
-  readSseLines,
-  throwProviderResponseError,
-  type AdapterContext,
-  type ProviderAdapter
-} from "./base";
-import type { TranslateRequest } from "../../shared/types";
+import { buildPrompt, readSseLines, throwProviderResponseError, type AdapterContext, type ProviderAdapter } from "./base";
+import type { ProviderName, TranslateRequest } from "../../shared/types";
 
-export class OpenAiAdapter implements ProviderAdapter {
-  readonly name = "openai" as const;
+function normalizeBaseURL(baseURL: string): string {
+  return baseURL.replace(/\/+$/, "");
+}
+
+export class OpenAiCompatibleAdapter implements ProviderAdapter {
+  readonly name: ProviderName;
+
+  constructor(name: ProviderName) {
+    this.name = name;
+  }
 
   async *stream(req: TranslateRequest, context: AdapterContext): AsyncGenerator<string> {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch(`${normalizeBaseURL(context.baseURL)}/chat/completions`, {
       method: "POST",
       headers: {
         "content-type": "application/json",

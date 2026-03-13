@@ -3,7 +3,16 @@ import { ProviderHttpError } from "./providers/base";
 import { getAdapter, getAttemptBudget, orderedProviders } from "./router";
 import { getCached, makeCacheIdentity, setCached } from "../shared/cache";
 import { getSecrets, getSettings } from "../shared/storage";
-import type { ContentMessage, ErrorCode, PortRequest, StreamEvent, TranslateRequest } from "../shared/types";
+import type {
+  ContentMessage,
+  ErrorCode,
+  PortRequest,
+  ProviderName,
+  RuntimeMessage,
+  RuntimeResponse,
+  StreamEvent,
+  TranslateRequest
+} from "../shared/types";
 
 const controllers = new Map<string, AbortController>();
 
@@ -168,8 +177,9 @@ function classifyAttemptFailure(error: unknown, abortReason: AttemptAbortReason 
 async function runProviderAttempt(
   port: chrome.runtime.Port,
   req: TranslateRequest,
-  provider: "openai" | "anthropic" | "openrouter",
+  provider: ProviderName,
   apiKey: string,
+  baseURL: string,
   model: string,
   parentSignal: AbortSignal,
   budgets: ReturnType<typeof getAttemptBudget>
@@ -189,7 +199,7 @@ async function runProviderAttempt(
   emit(port, { type: "start", requestId: req.requestId, provider, model });
 
   try {
-    for await (const chunk of adapter.stream(req, { apiKey, model, signal: attempt.signal })) {
+    for await (const chunk of adapter.stream(req, { apiKey, baseURL, model, signal: attempt.signal })) {
       if (!ttftSent) {
         attempt.markFirstChunk();
         ttftMs = Date.now() - startedAt;
@@ -248,7 +258,7 @@ async function processRequest(port: chrome.runtime.Port, req: TranslateRequest):
       type: "error",
       requestId: req.requestId,
       code: "E_NO_PROVIDER",
-      message: "No provider API key configured",
+      message: "No complete provider configuration found",
       retryable: false
     });
     return;
@@ -265,7 +275,11 @@ async function processRequest(port: chrome.runtime.Port, req: TranslateRequest):
       }
 
       const model = settings.models[provider];
-      const identity = makeCacheIdentity(req.text, req.sourceLang, req.targetLang, model);
+      const baseURL = settings.baseURLs[provider].trim();
+      if (!baseURL) {
+        continue;
+      }
+      const identity = makeCacheIdentity(req.text, req.sourceLang, req.targetLang, provider, baseURL, model);
       const cached = await getCached(identity);
 
       if (cached) {
@@ -296,6 +310,7 @@ async function processRequest(port: chrome.runtime.Port, req: TranslateRequest):
             req,
             provider,
             key,
+            baseURL,
             model,
             requestController.signal,
             budgets
@@ -397,6 +412,13 @@ chrome.commands.onCommand.addListener(async (command) => {
   }
   const msg: ContentMessage = { type: "TRIGGER_TRANSLATE_SELECTION" };
   await chrome.tabs.sendMessage(active.id, msg);
+});
+
+chrome.runtime.onMessage.addListener((message: RuntimeMessage, _sender, sendResponse) => {
+  if (message.type === "PING") {
+    const response: RuntimeResponse = { ok: true, type: "PONG" };
+    sendResponse(response);
+  }
 });
 
 chrome.runtime.onConnect.addListener((port) => {

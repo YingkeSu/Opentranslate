@@ -2,8 +2,24 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getCached, makeCacheIdentity, setCached } from "../../src/shared/cache";
 import { getProviderMetrics, getSettings, setProviderMetrics, setSettings } from "../../src/shared/storage";
-import { DEFAULT_SETTINGS } from "../../src/shared/types";
+import { ALL_PROVIDERS, DEFAULT_SETTINGS, type ProviderMetricsSnapshot } from "../../src/shared/types";
 import { installChromeMock } from "./support/mockChrome";
+
+function providerMetrics(
+  partial: Partial<ProviderMetricsSnapshot>
+): ProviderMetricsSnapshot {
+  return ALL_PROVIDERS.reduce<ProviderMetricsSnapshot>((acc, provider) => {
+    acc[provider] = {
+      attempts: 0,
+      successes: 0,
+      failures: 0,
+      timeoutCount: 0,
+      rateLimitCount: 0,
+      ...(partial[provider] ?? {})
+    };
+    return acc;
+  }, {} as ProviderMetricsSnapshot);
+}
 
 describe("storage and cache", () => {
   beforeEach(() => {
@@ -40,6 +56,7 @@ describe("storage and cache", () => {
     expect(settings.targetLanguage).toBe("ja");
     expect(settings.models.openai).toBe("gpt-4.1-mini");
     expect(settings.models.openrouter).toBe(DEFAULT_SETTINGS.models.openrouter);
+    expect(settings.baseURLs.groq).toBe(DEFAULT_SETTINGS.baseURLs.groq);
     expect(settings.providerPriority).toEqual(DEFAULT_SETTINGS.providerPriority);
   });
 
@@ -61,7 +78,7 @@ describe("storage and cache", () => {
       }
     });
 
-    await setProviderMetrics({
+    await setProviderMetrics(providerMetrics({
       openrouter: {
         attempts: 1,
         successes: 1,
@@ -86,7 +103,7 @@ describe("storage and cache", () => {
         rateLimitCount: 0,
         lastErrorCode: "E_TIMEOUT"
       }
-    });
+    }));
 
     const settings = await getSettings();
     const metrics = await getProviderMetrics();
@@ -98,7 +115,14 @@ describe("storage and cache", () => {
   });
 
   it("expires cached translations after ttl", async () => {
-    const identity = makeCacheIdentity("hello world", undefined, "zh-CN", "gpt-4o-mini");
+    const identity = makeCacheIdentity(
+      "hello world",
+      undefined,
+      "zh-CN",
+      "openai",
+      "https://api.openai.com/v1",
+      "gpt-4o-mini"
+    );
     await setCached(identity, "你好，世界");
 
     expect(await getCached(identity)).toBe("你好，世界");

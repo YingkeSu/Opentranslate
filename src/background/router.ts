@@ -1,6 +1,5 @@
 import { AnthropicAdapter } from "./providers/anthropic";
-import { OpenAiAdapter } from "./providers/openai";
-import { OpenRouterAdapter } from "./providers/openrouter";
+import { OpenAiCompatibleAdapter } from "./providers/openai";
 import type { ProviderAdapter } from "./providers/base";
 import type {
   ExtensionSettings,
@@ -10,9 +9,13 @@ import type {
 } from "../shared/types";
 
 const providers: Record<ProviderName, ProviderAdapter> = {
-  openai: new OpenAiAdapter(),
+  openai: new OpenAiCompatibleAdapter("openai"),
   anthropic: new AnthropicAdapter(),
-  openrouter: new OpenRouterAdapter()
+  openrouter: new OpenAiCompatibleAdapter("openrouter"),
+  groq: new OpenAiCompatibleAdapter("groq"),
+  together: new OpenAiCompatibleAdapter("together"),
+  fireworks: new OpenAiCompatibleAdapter("fireworks"),
+  "custom-openai": new OpenAiCompatibleAdapter("custom-openai")
 };
 
 export type AttemptBudget = {
@@ -60,7 +63,7 @@ export function orderedProviders(
   metrics: ProviderMetricsSnapshot
 ): ProviderName[] {
   return settings.providerPriority
-    .filter((provider) => Boolean(secrets[provider]))
+    .filter((provider) => Boolean(secrets[provider]) && Boolean(settings.baseURLs[provider]?.trim()))
     .sort((left, right) => providerScore(right, settings, metrics) - providerScore(left, settings, metrics));
 }
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  ALL_PROVIDERS,
   DEFAULT_SETTINGS,
   type ProviderMetrics,
   type ProviderMetricsSnapshot
@@ -10,32 +11,17 @@ import { getAttemptBudget, orderedProviders } from "../../src/background/router"
 function metrics(
   partial: Partial<Record<keyof ProviderMetricsSnapshot, Partial<ProviderMetrics>>>
 ): ProviderMetricsSnapshot {
-  return {
-    openrouter: {
+  return ALL_PROVIDERS.reduce<ProviderMetricsSnapshot>((acc, provider) => {
+    acc[provider] = {
       attempts: 0,
       successes: 0,
       failures: 0,
       timeoutCount: 0,
       rateLimitCount: 0,
-      ...partial.openrouter
-    },
-    openai: {
-      attempts: 0,
-      successes: 0,
-      failures: 0,
-      timeoutCount: 0,
-      rateLimitCount: 0,
-      ...partial.openai
-    },
-    anthropic: {
-      attempts: 0,
-      successes: 0,
-      failures: 0,
-      timeoutCount: 0,
-      rateLimitCount: 0,
-      ...partial.anthropic
-    }
-  };
+      ...(partial[provider] ?? {})
+    };
+    return acc;
+  }, {} as ProviderMetricsSnapshot);
 }
 
 describe("router", () => {

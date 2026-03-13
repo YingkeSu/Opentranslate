@@ -7,18 +7,27 @@ import {
 } from "../shared/storage";
 import {
   ALL_PROVIDERS,
+  PROVIDER_LABELS,
+  PROVIDER_TEMPLATES,
   type ProviderMetrics,
   type ProviderMetricsSnapshot,
-  type ProviderName
+  type ProviderName,
+  type ProviderSecrets
 } from "../shared/types";
 
-function providerList(input: string): ProviderName[] {
-  const values = input
-    .split(",")
-    .map((value) => value.trim())
-    .filter((value): value is ProviderName => ALL_PROVIDERS.includes(value as ProviderName));
+function populateProviderSelect(select: HTMLSelectElement): void {
+  select.replaceChildren(
+    ...ALL_PROVIDERS.map((provider) => {
+      const option = document.createElement("option");
+      option.value = provider;
+      option.textContent = PROVIDER_LABELS[provider];
+      return option;
+    })
+  );
+}
 
-  return values.length ? values : [...ALL_PROVIDERS];
+function reorderProviders(primary: ProviderName): ProviderName[] {
+  return [primary, ...ALL_PROVIDERS.filter((provider) => provider !== primary)];
 }
 
 function formatMs(value: number | undefined): string {
@@ -88,6 +97,47 @@ function renderProviderHealth(snapshot: ProviderMetricsSnapshot): void {
   }
 }
 
+function renderProviderEditor(
+  provider: ProviderName,
+  settings: Awaited<ReturnType<typeof getSettings>>,
+  secrets: ProviderSecrets,
+  modelLabel: HTMLElement,
+  modelInput: HTMLInputElement,
+  baseURLInput: HTMLInputElement,
+  keyLabel: HTMLElement,
+  keyInput: HTMLInputElement,
+  note: HTMLElement
+): void {
+  const template = PROVIDER_TEMPLATES[provider];
+  modelLabel.textContent = `${PROVIDER_LABELS[provider]} model`;
+  keyLabel.textContent = `${PROVIDER_LABELS[provider]} API key`;
+  modelInput.placeholder = template.defaultModel;
+  modelInput.value = settings.models[provider];
+  baseURLInput.placeholder = template.defaultBaseURL || "https://api.example.com/v1";
+  baseURLInput.value = settings.baseURLs[provider];
+  keyInput.placeholder = template.keyPlaceholder;
+  keyInput.value = secrets[provider] ?? "";
+  note.textContent = `${template.description} Protocol: ${template.protocol}.`;
+}
+
+function resetProviderToTemplate(
+  provider: ProviderName,
+  settings: Awaited<ReturnType<typeof getSettings>>
+): Awaited<ReturnType<typeof getSettings>> {
+  const template = PROVIDER_TEMPLATES[provider];
+  return {
+    ...settings,
+    baseURLs: {
+      ...settings.baseURLs,
+      [provider]: template.defaultBaseURL
+    },
+    models: {
+      ...settings.models,
+      [provider]: template.defaultModel
+    }
+  };
+}
+
 async function init(): Promise<void> {
   const form = document.getElementById("settings-form") as HTMLFormElement | null;
   if (!form) {
@@ -96,59 +146,114 @@ async function init(): Promise<void> {
 
   const targetLanguage = document.getElementById("target-language") as HTMLInputElement;
   const speedMode = document.getElementById("speed-mode") as HTMLSelectElement;
-  const providerPriority = document.getElementById("provider-priority") as HTMLInputElement;
-  const openrouterModel = document.getElementById("openrouter-model") as HTMLInputElement;
-  const openaiModel = document.getElementById("openai-model") as HTMLInputElement;
-  const anthropicModel = document.getElementById("anthropic-model") as HTMLInputElement;
-  const openrouterKey = document.getElementById("openrouter-key") as HTMLInputElement;
-  const openaiKey = document.getElementById("openai-key") as HTMLInputElement;
-  const anthropicKey = document.getElementById("anthropic-key") as HTMLInputElement;
+  const primaryProvider = document.getElementById("primary-provider") as HTMLSelectElement;
+  const configProvider = document.getElementById("config-provider") as HTMLSelectElement;
+  const providerModelLabel = document.getElementById("provider-model-label") as HTMLSpanElement;
+  const providerModel = document.getElementById("provider-model") as HTMLInputElement;
+  const providerBaseURL = document.getElementById("provider-base-url") as HTMLInputElement;
+  const providerKeyLabel = document.getElementById("provider-key-label") as HTMLSpanElement;
+  const providerKey = document.getElementById("provider-key") as HTMLInputElement;
+  const providerTemplateNote = document.getElementById("provider-template-note") as HTMLParagraphElement;
+  const resetProviderTemplate = document.getElementById("reset-provider-template") as HTMLButtonElement;
   const state = document.getElementById("saved-state") as HTMLParagraphElement;
+
+  populateProviderSelect(primaryProvider);
+  populateProviderSelect(configProvider);
 
   let settings = await getSettings();
   let secrets = await getSecrets();
+  let activeConfigProvider = settings.providerPriority[0];
+
+  const persistVisibleProviderDraft = () => {
+    settings = {
+      ...settings,
+      baseURLs: {
+        ...settings.baseURLs,
+        [activeConfigProvider]: providerBaseURL.value.trim()
+      },
+      models: {
+        ...settings.models,
+        [activeConfigProvider]: providerModel.value.trim() || settings.models[activeConfigProvider]
+      }
+    };
+    secrets = {
+      ...secrets,
+      [activeConfigProvider]: providerKey.value.trim()
+    };
+  };
 
   const syncForm = (nextSettings: typeof settings, nextSecrets: typeof secrets) => {
     targetLanguage.value = nextSettings.targetLanguage;
     speedMode.value = nextSettings.speedMode;
-    providerPriority.value = nextSettings.providerPriority.join(",");
-    openrouterModel.value = nextSettings.models.openrouter;
-    openaiModel.value = nextSettings.models.openai;
-    anthropicModel.value = nextSettings.models.anthropic;
-    openrouterKey.value = nextSecrets.openrouter ?? "";
-    openaiKey.value = nextSecrets.openai ?? "";
-    anthropicKey.value = nextSecrets.anthropic ?? "";
+    primaryProvider.value = nextSettings.providerPriority[0];
+    configProvider.value = activeConfigProvider;
+    renderProviderEditor(
+      activeConfigProvider,
+      nextSettings,
+      nextSecrets,
+      providerModelLabel,
+      providerModel,
+      providerBaseURL,
+      providerKeyLabel,
+      providerKey,
+      providerTemplateNote
+    );
   };
 
   const refresh = async () => {
     settings = await getSettings();
     secrets = await getSecrets();
+    if (!ALL_PROVIDERS.includes(activeConfigProvider)) {
+      activeConfigProvider = settings.providerPriority[0];
+    }
     syncForm(settings, secrets);
     renderProviderHealth(await getProviderMetrics());
   };
+
+  configProvider.addEventListener("change", () => {
+    persistVisibleProviderDraft();
+    activeConfigProvider = configProvider.value as ProviderName;
+    renderProviderEditor(
+      activeConfigProvider,
+      settings,
+      secrets,
+      providerModelLabel,
+      providerModel,
+      providerBaseURL,
+      providerKeyLabel,
+      providerKey,
+      providerTemplateNote
+    );
+  });
+
+  resetProviderTemplate.addEventListener("click", () => {
+    persistVisibleProviderDraft();
+    settings = resetProviderToTemplate(activeConfigProvider, settings);
+    renderProviderEditor(
+      activeConfigProvider,
+      settings,
+      secrets,
+      providerModelLabel,
+      providerModel,
+      providerBaseURL,
+      providerKeyLabel,
+      providerKey,
+      providerTemplateNote
+    );
+  });
 
   syncForm(settings, secrets);
   renderProviderHealth(await getProviderMetrics());
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    persistVisibleProviderDraft();
 
     settings = {
       ...settings,
       targetLanguage: targetLanguage.value.trim() || "zh-CN",
       speedMode: speedMode.value as "fast" | "balanced" | "quality",
-      providerPriority: providerList(providerPriority.value),
-      models: {
-        openrouter: openrouterModel.value.trim() || settings.models.openrouter,
-        openai: openaiModel.value.trim() || settings.models.openai,
-        anthropic: anthropicModel.value.trim() || settings.models.anthropic
-      }
-    };
-
-    secrets = {
-      openrouter: openrouterKey.value.trim(),
-      openai: openaiKey.value.trim(),
-      anthropic: anthropicKey.value.trim()
+      providerPriority: reorderProviders(primaryProvider.value as ProviderName)
     };
 
     await setSettings(settings);
