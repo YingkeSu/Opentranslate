@@ -1,7 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getCached, makeCacheIdentity, setCached } from "../../src/shared/cache";
-import { getProviderMetrics, getSettings, setProviderMetrics, setSettings } from "../../src/shared/storage";
+import {
+  appendQueryTrace,
+  getProviderMetrics,
+  getQueryTraces,
+  getSettings,
+  setProviderMetrics,
+  setSettings
+} from "../../src/shared/storage";
 import { ALL_PROVIDERS, DEFAULT_SETTINGS, type ProviderMetricsSnapshot } from "../../src/shared/types";
 import { installChromeMock } from "./support/mockChrome";
 
@@ -31,7 +38,8 @@ describe("storage and cache", () => {
           targetLanguage: "ja",
           models: {
             openai: "gpt-4.1-mini"
-          }
+          },
+          providerPriority: ["openai", "openai", "invalid-provider"]
         }
       },
       local: {
@@ -54,10 +62,10 @@ describe("storage and cache", () => {
     const settings = await getSettings();
 
     expect(settings.targetLanguage).toBe("ja");
-    expect(settings.models.openai).toBe("gpt-4.1-mini");
-    expect(settings.models.openrouter).toBe(DEFAULT_SETTINGS.models.openrouter);
+    expect(settings.models.openai).toEqual(["gpt-4.1-mini"]);
+    expect(settings.models.openrouter).toEqual(DEFAULT_SETTINGS.models.openrouter);
     expect(settings.baseURLs.groq).toBe(DEFAULT_SETTINGS.baseURLs.groq);
-    expect(settings.providerPriority).toEqual(DEFAULT_SETTINGS.providerPriority);
+    expect(settings.providerPriority).toEqual(["openai"]);
   });
 
   it("sanitizes provider metrics for all providers", async () => {
@@ -74,8 +82,9 @@ describe("storage and cache", () => {
       targetLanguage: "fr",
       models: {
         ...DEFAULT_SETTINGS.models,
-        anthropic: "claude-3-7-sonnet-latest"
-      }
+        anthropic: ["claude-3-7-sonnet-latest", "claude-3-5-haiku-latest"]
+      },
+      providerPriority: ["anthropic", "openai"]
     });
 
     await setProviderMetrics(providerMetrics({
@@ -109,9 +118,32 @@ describe("storage and cache", () => {
     const metrics = await getProviderMetrics();
 
     expect(settings.targetLanguage).toBe("fr");
-    expect(settings.models.anthropic).toBe("claude-3-7-sonnet-latest");
+    expect(settings.models.anthropic).toEqual(["claude-3-7-sonnet-latest", "claude-3-5-haiku-latest"]);
     expect(metrics.openrouter.avgLatencyMs).toBe(1200);
     expect(metrics.anthropic.lastErrorCode).toBe("E_TIMEOUT");
+  });
+
+  it("keeps only the latest query traces", async () => {
+    for (let index = 0; index < 14; index += 1) {
+      await appendQueryTrace({
+        id: `trace-${index}`,
+        requestText: `request ${index}`,
+        responseText: `response ${index}`,
+        targetLang: "zh-CN",
+        createdAt: Date.now() + index,
+        finishedAt: Date.now() + index,
+        cacheHit: false,
+        ok: true,
+        provider: "openai",
+        model: "gpt-4o-mini"
+      });
+    }
+
+    const traces = await getQueryTraces();
+
+    expect(traces).toHaveLength(12);
+    expect(traces[0]?.id).toBe("trace-13");
+    expect(traces.at(-1)?.id).toBe("trace-2");
   });
 
   it("expires cached translations after ttl", async () => {

@@ -7,6 +7,8 @@
   --muted: #5a6476;
   --accent: #0f766e;
   --accent-strong: #115e59;
+  --danger: #b91c1c;
+  --danger-soft: #fee2e2;
   --shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
 }
 
@@ -23,13 +25,13 @@ body {
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 40px 24px 56px;
 }
 
 .hero {
-  max-width: 720px;
+  max-width: 760px;
   margin-bottom: 24px;
 }
 
@@ -56,7 +58,7 @@ h1 {
 }
 
 .hero-copy {
-  max-width: 640px;
+  max-width: 680px;
   margin-top: 14px;
   color: var(--muted);
   font-size: 16px;
@@ -65,9 +67,14 @@ h1 {
 
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.9fr);
+  grid-template-columns: minmax(0, 1.2fr) minmax(340px, 0.92fr);
   gap: 18px;
   align-items: start;
+}
+
+.sidebar {
+  display: grid;
+  gap: 18px;
 }
 
 .panel {
@@ -76,13 +83,6 @@ h1 {
   background: var(--panel);
   box-shadow: var(--shadow);
   backdrop-filter: blur(18px);
-}
-
-form.panel {
-  padding: 24px;
-}
-
-.health-panel {
   padding: 24px;
 }
 
@@ -129,6 +129,12 @@ form.panel {
   border: 1px solid rgba(15, 23, 42, 0.08);
 }
 
+.inline-action {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
 .provider-template-note {
   margin-top: 12px;
   color: var(--muted);
@@ -137,6 +143,9 @@ form.panel {
 }
 
 .editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
   margin-top: 14px;
 }
 
@@ -150,12 +159,14 @@ label {
 
 input,
 select,
+textarea,
 button {
   font: inherit;
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
   border: 1px solid rgba(15, 23, 42, 0.12);
   border-radius: 14px;
@@ -165,8 +176,15 @@ select {
   transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
+textarea {
+  min-height: 140px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
 input:focus,
-select:focus {
+select:focus,
+textarea:focus {
   outline: none;
   border-color: rgba(15, 118, 110, 0.55);
   box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.12);
@@ -195,6 +213,20 @@ button:hover {
   box-shadow: none;
 }
 
+.danger-button {
+  background: var(--danger-soft);
+  color: var(--danger);
+  box-shadow: none;
+}
+
+button:disabled,
+select:disabled,
+input:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
 .saved-state {
   min-height: 20px;
   margin-top: 18px;
@@ -203,27 +235,42 @@ button:hover {
   font-weight: 700;
 }
 
-.health-grid {
+.health-grid,
+.status-grid,
+.trace-list {
   display: grid;
   gap: 12px;
 }
 
-.health-card {
+.health-card,
+.status-card,
+.trace-card,
+.empty-card {
   border-radius: 18px;
   padding: 16px;
   background: linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(241, 245, 249, 0.88));
   border: 1px solid rgba(15, 23, 42, 0.07);
 }
 
-.health-top {
+.health-top,
+.status-top,
+.trace-top {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   margin-bottom: 12px;
 }
 
-[data-field="badge"] {
+.health-top strong,
+.status-top strong,
+.trace-top strong {
+  display: block;
+}
+
+[data-field="badge"],
+.status-badge,
+.trace-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -237,7 +284,9 @@ button:hover {
   text-transform: uppercase;
 }
 
-.health-card[data-state="healthy"] [data-field="badge"] {
+.health-card[data-state="healthy"] [data-field="badge"],
+.status-card[data-state="healthy"] .status-badge,
+.trace-card[data-state="success"] .trace-badge {
   background: rgba(34, 197, 94, 0.14);
   color: #166534;
 }
@@ -247,23 +296,47 @@ button:hover {
   color: #92400e;
 }
 
-.health-card[data-state="down"] [data-field="badge"] {
+.health-card[data-state="down"] [data-field="badge"],
+.status-card[data-state="failed"] .status-badge,
+.trace-card[data-state="failed"] .trace-badge {
   background: rgba(239, 68, 68, 0.14);
   color: #991b1b;
 }
 
 .health-meta,
-.health-note {
+.health-note,
+.status-meta,
+.trace-meta,
+.trace-label {
   color: var(--muted);
   font-size: 13px;
+  line-height: 1.5;
 }
 
-.health-meta + .health-meta,
-.health-note {
+.trace-body {
+  display: grid;
+  gap: 10px;
+}
+
+.trace-text {
   margin-top: 6px;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.78);
+  color: #0f172a;
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
-@media (max-width: 920px) {
+.empty-card {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+@media (max-width: 980px) {
   .layout {
     grid-template-columns: 1fr;
   }
@@ -271,19 +344,27 @@ button:hover {
 
 @media (max-width: 640px) {
   .container {
-    padding: 24px 16px 36px;
+    padding: 28px 16px 40px;
   }
 
   .panel-head,
+  .health-top,
+  .status-top,
+  .trace-top,
+  .inline-action {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
   .field-grid {
     grid-template-columns: 1fr;
   }
 
-  .panel-head {
+  .editor-actions {
     flex-direction: column;
   }
 
-  .span-2 {
-    grid-column: auto;
+  button {
+    width: 100%;
   }
 }

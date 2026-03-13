@@ -4,26 +4,54 @@ import {
   type ExtensionSettings,
   type ProviderMetrics,
   type ProviderMetricsSnapshot,
+  type QueryTrace,
   type ProviderSecrets
 } from "./types";
 
 const SETTINGS_KEY = "polyglot.settings";
 const SECRETS_KEY = "polyglot.secrets";
 const METRICS_KEY = "polyglot.metrics";
+const QUERY_TRACE_KEY = "polyglot.query-traces";
+const MAX_QUERY_TRACES = 12;
+
+function normalizeModelList(value: unknown, fallback: string[]): string[] {
+  if (Array.isArray(value)) {
+    const models = value.map((entry) => String(entry).trim()).filter(Boolean);
+    return models.length ? models : [...fallback];
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    return [value.trim()];
+  }
+
+  return [...fallback];
+}
 
 function mergeSettings(stored: Partial<ExtensionSettings> | undefined): ExtensionSettings {
+  const storedModels = stored?.models as Partial<Record<keyof ExtensionSettings["models"], unknown>> | undefined;
+  const models = ALL_PROVIDERS.reduce<ExtensionSettings["models"]>((acc, provider) => {
+    acc[provider] = normalizeModelList(storedModels?.[provider], DEFAULT_SETTINGS.models[provider]);
+    return acc;
+  }, {} as ExtensionSettings["models"]);
+  const providerPriority = Array.isArray(stored?.providerPriority)
+    ? Array.from(
+        new Set(
+          stored.providerPriority.filter((provider): provider is (typeof ALL_PROVIDERS)[number] =>
+            ALL_PROVIDERS.includes(provider)
+          )
+        )
+      )
+    : [...DEFAULT_SETTINGS.providerPriority];
+
   return {
     ...DEFAULT_SETTINGS,
     ...stored,
-    providerPriority: stored?.providerPriority?.length ? stored.providerPriority : [...DEFAULT_SETTINGS.providerPriority],
+    providerPriority,
     baseURLs: {
       ...DEFAULT_SETTINGS.baseURLs,
       ...(stored?.baseURLs ?? {})
     },
-    models: {
-      ...DEFAULT_SETTINGS.models,
-      ...(stored?.models ?? {})
-    }
+    models
   };
 }
 
@@ -76,4 +104,16 @@ export async function setProviderMetrics(metrics: ProviderMetricsSnapshot): Prom
   }, {} as ProviderMetricsSnapshot);
 
   await chrome.storage.local.set({ [METRICS_KEY]: sanitized });
+}
+
+export async function getQueryTraces(): Promise<QueryTrace[]> {
+  const result = await chrome.storage.local.get(QUERY_TRACE_KEY);
+  const traces = result[QUERY_TRACE_KEY];
+  return Array.isArray(traces) ? (traces as QueryTrace[]) : [];
+}
+
+export async function appendQueryTrace(trace: QueryTrace): Promise<void> {
+  const traces = await getQueryTraces();
+  const next = [trace, ...traces].slice(0, MAX_QUERY_TRACES);
+  await chrome.storage.local.set({ [QUERY_TRACE_KEY]: next });
 }

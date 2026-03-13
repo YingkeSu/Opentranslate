@@ -134,6 +134,7 @@ function handleStreamEvent(event: StreamEvent): void {
 
   if (event.type === "start") {
     ui.status.textContent = `Provider: ${PROVIDER_LABELS[event.provider]}/${event.model}`;
+    ui.output.textContent = "";
     return;
   }
 

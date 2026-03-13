@@ -28,8 +28,8 @@
         <section class="provider-block">
           <div class="provider-block__head">
             <div>
-              <h2>Provider Config</h2>
-              <p>Choose one provider at a time, then edit its credential.</p>
+              <h2>Configured Providers</h2>
+              <p id="configured-provider-note">Edit one configured provider at a time.</p>
             </div>
           </div>
 
@@ -44,6 +44,14 @@
           </label>
 
           <p id="provider-template-note" class="provider-note"></p>
+
+          <div class="add-provider">
+            <label>
+              Add provider template
+              <select id="add-provider-template"></select>
+            </label>
+            <button id="add-provider" type="button" class="secondary">Add</button>
+          </div>
         </section>
 
         <div class="actions">
@@ -52,7 +60,7 @@
         </div>
       </form>
 
-      <p class="hint">Use `Alt+T`, right click, or the floating translate button after selecting text.</p>
+      <p class="hint">Only configured providers appear in the editor. Add a template to enable a new provider.</p>
     </main>
     <script src="popup.js"></script>
   </body>

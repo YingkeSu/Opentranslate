@@ -53,19 +53,21 @@ async function seedExtensionStorage(): Promise<void> {
       "polyglot.settings": {
         targetLanguage: "zh-CN",
         speedMode: "fast",
-        providerPriority: ["openrouter", "openai", "anthropic"],
+        providerPriority: ["openrouter", "openai"],
         models: {
-          openrouter: "openai/gpt-4o-mini",
-          openai: "gpt-4o-mini",
-          anthropic: "claude-3-5-haiku-latest"
+          openrouter: ["openai/gpt-4o-mini"],
+          openai: ["gpt-4o-mini"]
+        },
+        baseURLs: {
+          openrouter: "https://openrouter.ai/api/v1",
+          openai: "https://api.openai.com/v1"
         }
       }
     });
     await chrome.storage.session.set({
       "polyglot.secrets": {
         openrouter: "or-key",
-        openai: "oa-key",
-        anthropic: "an-key"
+        openai: "oa-key"
       }
     });
   });
@@ -227,6 +229,8 @@ test("configures provider and api keys from the popup", async () => {
   await page.goto(`chrome-extension://${extensionId}/popup.html`);
 
   await expect(page.locator("#status")).toContainText("Background service ready.");
+  await expect(page.locator("#primary-provider option")).toHaveCount(2);
+  expect(await page.locator("#primary-provider option").allTextContents()).toEqual(["OpenRouter", "OpenAI"]);
 
   await page.getByLabel("Target language").fill("fr");
   await page.getByLabel("Primary provider").selectOption("openai");
@@ -258,13 +262,20 @@ test("saves settings through the extension options page", async () => {
   const page = await context.newPage();
   await page.goto(`chrome-extension://${extensionId}/options.html`);
 
+  await expect(page.locator("#primary-provider option")).toHaveCount(2);
+  expect(await page.locator("#primary-provider option").allTextContents()).toEqual(["OpenRouter", "OpenAI"]);
+
   await page.getByLabel("Default Target Language").fill("fr");
   await page.getByLabel("Speed Mode").selectOption("quality");
   await page.getByLabel("Primary Provider").selectOption("openai");
+  await page.getByLabel("Add Provider Template").selectOption("groq");
+  await page.getByRole("button", { name: "Add" }).click();
   await page.getByLabel("Provider to Configure").selectOption("groq");
   await expect(page.getByLabel("Base URL")).toHaveValue("https://api.groq.com/openai/v1");
+  await page.getByLabel("Groq models").fill("openai/gpt-oss-20b\nllama-3.3-70b-versatile");
+  await page.getByLabel("Groq API Key").fill("updated-groq-key");
   await page.getByLabel("Provider to Configure").selectOption("openai");
-  await page.getByLabel("OpenAI model").fill("gpt-4.1-mini");
+  await page.getByLabel("OpenAI models").fill("gpt-4.1-mini\ngpt-4o-mini");
   await page.getByLabel("OpenAI API key").fill("updated-openai-key");
   await page.getByRole("button", { name: "Save Settings" }).click();
 
@@ -281,17 +292,11 @@ test("saves settings through the extension options page", async () => {
 
   expect(snapshot.settings.targetLanguage).toBe("fr");
   expect(snapshot.settings.speedMode).toBe("quality");
-  expect(snapshot.settings.providerPriority).toEqual([
-    "openai",
-    "openrouter",
-    "anthropic",
-    "groq",
-    "together",
-    "fireworks",
-    "custom-openai"
-  ]);
-  expect(snapshot.settings.models.openai).toBe("gpt-4.1-mini");
+  expect(snapshot.settings.providerPriority).toEqual(["openai", "openrouter", "groq"]);
+  expect(snapshot.settings.models.openai).toEqual(["gpt-4.1-mini", "gpt-4o-mini"]);
+  expect(snapshot.settings.models.groq).toEqual(["openai/gpt-oss-20b", "llama-3.3-70b-versatile"]);
   expect(snapshot.secrets.openai).toBe("updated-openai-key");
+  expect(snapshot.secrets.groq).toBe("updated-groq-key");
 
   await serviceWorker.evaluate(async () => {
     await chrome.storage.local.set({
@@ -312,12 +317,14 @@ test("saves settings through the extension options page", async () => {
           avgTtftMs: 420,
           avgLatencyMs: 1600
         },
-        anthropic: {
-          attempts: 1,
-          successes: 0,
+        groq: {
+          attempts: 2,
+          successes: 1,
           failures: 1,
           timeoutCount: 1,
           rateLimitCount: 0,
+          avgTtftMs: 310,
+          avgLatencyMs: 1100,
           lastErrorCode: "E_TIMEOUT"
         }
       }
@@ -326,6 +333,58 @@ test("saves settings through the extension options page", async () => {
 
   await expect(page.locator('.health-card[data-provider="openai"] [data-field="badge"]')).toHaveText("healthy");
   await expect(page.locator('.health-card[data-provider="openai"] [data-field="ttft"]')).toHaveText("420ms");
+  await expect(page.locator('.health-card[data-provider="groq"] [data-field="badge"]')).toHaveText("degraded");
+
+  await serviceWorker.evaluate(async () => {
+    await chrome.storage.local.set({
+      "polyglot.query-traces": [
+        {
+          id: "trace-1",
+          provider: "openai",
+          model: "gpt-4.1-mini",
+          requestText: "hello world",
+          responseText: "bonjour le monde",
+          targetLang: "fr",
+          createdAt: Date.now(),
+          finishedAt: Date.now(),
+          cacheHit: false,
+          ok: true
+        }
+      ]
+    });
+  });
+
+  await expect(page.locator('.trace-card[data-provider="openai"]')).toContainText("bonjour le monde");
+
+  await installFetchMock([
+    {
+      match: "openrouter.ai/api/v1/models",
+      body: '{"data":[]}',
+      headers: {
+        "content-type": "application/json"
+      }
+    },
+    {
+      match: "api.openai.com/v1/models",
+      body: '{"data":[]}',
+      headers: {
+        "content-type": "application/json"
+      }
+    },
+    {
+      match: "api.groq.com/openai/v1/models",
+      status: 503,
+      body: '{"error":"temporary outage"}',
+      headers: {
+        "content-type": "application/json"
+      }
+    }
+  ]);
+
+  await page.getByRole("button", { name: "Test Saved Providers" }).click();
+
+  await expect(page.locator('.status-card[data-provider="openai"] .status-badge')).toHaveText("ok");
+  await expect(page.locator('.status-card[data-provider="groq"]')).toContainText("HTTP 503");
   await page.close();
 });
 

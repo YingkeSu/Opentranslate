@@ -138,15 +138,46 @@ export type ContentMessage =
   | { type: "TRIGGER_TRANSLATE_SELECTION" }
   | { type: "CONTEXT_TRANSLATE"; text: string };
 
-export type RuntimeMessage = { type: "PING" };
-export type RuntimeResponse = { ok: true; type: "PONG" };
+export type ProviderStatusResult = {
+  checkedAt: number;
+  models: string[];
+  ok: boolean;
+  provider: ProviderName;
+  status?: number;
+  message: string;
+};
+
+export type QueryTrace = {
+  id: string;
+  provider?: ProviderName;
+  model?: string;
+  requestText: string;
+  responseText?: string;
+  targetLang: string;
+  createdAt: number;
+  finishedAt: number;
+  cacheHit: boolean;
+  ok: boolean;
+  errorCode?: ErrorCode;
+  errorMessage?: string;
+};
+
+export type RuntimeMessage =
+  | { type: "PING" }
+  | { type: "GET_QUERY_TRACES" }
+  | { type: "TEST_PROVIDER_STATUS" };
+
+export type RuntimeResponse =
+  | { ok: true; type: "PONG" }
+  | { ok: true; type: "QUERY_TRACES"; traces: QueryTrace[] }
+  | { ok: true; type: "PROVIDER_STATUS"; results: ProviderStatusResult[] };
 
 export type ExtensionSettings = {
   targetLanguage: string;
   speedMode: SpeedMode;
   providerPriority: ProviderName[];
   baseURLs: Record<ProviderName, string>;
-  models: Record<ProviderName, string>;
+  models: Record<ProviderName, string[]>;
 };
 
 export type ProviderSecrets = Partial<Record<ProviderName, string>>;
@@ -169,7 +200,7 @@ export type ProviderMetricsSnapshot = Record<ProviderName, ProviderMetrics>;
 export const DEFAULT_SETTINGS: ExtensionSettings = {
   targetLanguage: "zh-CN",
   speedMode: "fast",
-  providerPriority: ["openrouter", "openai", "anthropic"],
+  providerPriority: [],
   baseURLs: {
     openrouter: PROVIDER_TEMPLATES.openrouter.defaultBaseURL,
     openai: PROVIDER_TEMPLATES.openai.defaultBaseURL,
@@ -180,12 +211,12 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
     "custom-openai": PROVIDER_TEMPLATES["custom-openai"].defaultBaseURL
   },
   models: {
-    openrouter: PROVIDER_TEMPLATES.openrouter.defaultModel,
-    openai: PROVIDER_TEMPLATES.openai.defaultModel,
-    anthropic: PROVIDER_TEMPLATES.anthropic.defaultModel,
-    groq: PROVIDER_TEMPLATES.groq.defaultModel,
-    together: PROVIDER_TEMPLATES.together.defaultModel,
-    fireworks: PROVIDER_TEMPLATES.fireworks.defaultModel,
-    "custom-openai": PROVIDER_TEMPLATES["custom-openai"].defaultModel
+    openrouter: [PROVIDER_TEMPLATES.openrouter.defaultModel],
+    openai: [PROVIDER_TEMPLATES.openai.defaultModel],
+    anthropic: [PROVIDER_TEMPLATES.anthropic.defaultModel],
+    groq: [PROVIDER_TEMPLATES.groq.defaultModel],
+    together: [PROVIDER_TEMPLATES.together.defaultModel],
+    fireworks: [PROVIDER_TEMPLATES.fireworks.defaultModel],
+    "custom-openai": [PROVIDER_TEMPLATES["custom-openai"].defaultModel]
   }
 };

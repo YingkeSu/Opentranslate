@@ -27,7 +27,10 @@ function metrics(
 describe("router", () => {
   it("reorders providers when health data outweighs static priority", () => {
     const result = orderedProviders(
-      DEFAULT_SETTINGS,
+      {
+        ...DEFAULT_SETTINGS,
+        providerPriority: ["openrouter", "openai", "anthropic"]
+      },
       {
         openrouter: "or-key",
         openai: "oa-key",
@@ -67,7 +70,10 @@ describe("router", () => {
 
   it("filters out providers without configured secrets", () => {
     const result = orderedProviders(
-      DEFAULT_SETTINGS,
+      {
+        ...DEFAULT_SETTINGS,
+        providerPriority: ["openrouter", "openai"]
+      },
       {
         openai: "oa-key"
       },

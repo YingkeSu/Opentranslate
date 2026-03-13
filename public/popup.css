@@ -106,6 +106,18 @@ h1 {
   line-height: 1.45;
 }
 
+.add-provider {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  margin-top: 12px;
+}
+
+.add-provider button {
+  min-width: 72px;
+}
+
 label {
   display: grid;
   gap: 7px;

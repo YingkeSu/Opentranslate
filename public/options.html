@@ -12,8 +12,8 @@
         <p class="eyebrow">Polyglot Translate</p>
         <h1>Provider Control Room</h1>
         <p class="hero-copy">
-          Tune defaults and configure one provider at a time. The selected provider editor updates model and API
-          credentials without dumping every vendor field onto the page.
+          Configure only the providers you actually use, order fallback by priority, test saved connectivity, and inspect
+          recent model outputs from this browser.
         </p>
       </section>
 
@@ -22,7 +22,7 @@
           <div class="panel-head">
             <div>
               <h2>Request Defaults</h2>
-              <p>These values are applied to every new translation request.</p>
+              <p>These defaults apply to new translation requests in the content script.</p>
             </div>
             <button type="submit">Save Settings</button>
           </div>
@@ -50,8 +50,25 @@
 
           <section class="section-block">
             <div class="section-title">
+              <h3>Configured Providers</h3>
+              <p id="configured-provider-note">Only configured providers appear in selectors and diagnostics.</p>
+            </div>
+
+            <div class="field-grid">
+              <label class="span-2">
+                Add Provider Template
+                <div class="inline-action">
+                  <select id="add-provider-template"></select>
+                  <button id="add-provider" type="button" class="secondary-button">Add</button>
+                </div>
+              </label>
+            </div>
+          </section>
+
+          <section class="section-block">
+            <div class="section-title">
               <h3>Provider Editor</h3>
-              <p>Select the supplier you want to edit. Only that supplier's model and API key are shown.</p>
+              <p>Edit one configured provider at a time. Models are tried top-to-bottom before switching providers.</p>
             </div>
 
             <div class="provider-editor">
@@ -61,9 +78,14 @@
               </label>
 
               <div class="field-grid">
-                <label>
-                  <span id="provider-model-label">Model</span>
-                  <input id="provider-model" type="text" />
+                <label class="span-2">
+                  <span id="provider-model-label">Models</span>
+                  <textarea
+                    id="provider-models"
+                    rows="5"
+                    spellcheck="false"
+                    placeholder="one model per line"
+                  ></textarea>
                 </label>
 
                 <label>
@@ -71,7 +93,7 @@
                   <input id="provider-base-url" type="url" />
                 </label>
 
-                <label class="span-2">
+                <label>
                   <span id="provider-key-label">API Key</span>
                   <input id="provider-key" type="password" />
                 </label>
@@ -81,6 +103,7 @@
 
               <div class="editor-actions">
                 <button id="reset-provider-template" type="button" class="secondary-button">Reset Template Defaults</button>
+                <button id="remove-provider" type="button" class="danger-button">Remove Provider</button>
               </div>
             </div>
           </section>
@@ -88,92 +111,41 @@
           <p id="saved-state" class="saved-state"></p>
         </form>
 
-        <aside class="panel health-panel">
-          <div class="panel-head">
-            <div>
-              <h2>Provider Health</h2>
-              <p>Recent performance learned from local translation history.</p>
+        <aside class="sidebar">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Provider Health</h2>
+                <p>Local success and latency signals for configured providers only.</p>
+              </div>
             </div>
-          </div>
 
-          <div id="provider-health" class="health-grid">
-            <article class="health-card" data-provider="openrouter">
-              <div class="health-top">
-                <strong>OpenRouter</strong>
-                <span data-field="badge">cold</span>
-              </div>
-              <p class="health-meta">TTFT <span data-field="ttft">-</span></p>
-              <p class="health-meta">Latency <span data-field="latency">-</span></p>
-              <p class="health-meta">Success <span data-field="success">-</span></p>
-              <p class="health-note" data-field="note">No local samples yet.</p>
-            </article>
+            <div id="provider-health" class="health-grid"></div>
+          </section>
 
-            <article class="health-card" data-provider="openai">
-              <div class="health-top">
-                <strong>OpenAI</strong>
-                <span data-field="badge">cold</span>
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Connectivity Test</h2>
+                <p>Tests the currently saved provider configurations against their saved endpoints.</p>
               </div>
-              <p class="health-meta">TTFT <span data-field="ttft">-</span></p>
-              <p class="health-meta">Latency <span data-field="latency">-</span></p>
-              <p class="health-meta">Success <span data-field="success">-</span></p>
-              <p class="health-note" data-field="note">No local samples yet.</p>
-            </article>
+              <button id="test-provider-status" type="button" class="secondary-button">Test Saved Providers</button>
+            </div>
 
-            <article class="health-card" data-provider="anthropic">
-              <div class="health-top">
-                <strong>Anthropic</strong>
-                <span data-field="badge">cold</span>
-              </div>
-              <p class="health-meta">TTFT <span data-field="ttft">-</span></p>
-              <p class="health-meta">Latency <span data-field="latency">-</span></p>
-              <p class="health-meta">Success <span data-field="success">-</span></p>
-              <p class="health-note" data-field="note">No local samples yet.</p>
-            </article>
+            <div id="provider-status-results" class="status-grid"></div>
+          </section>
 
-            <article class="health-card" data-provider="groq">
-              <div class="health-top">
-                <strong>Groq</strong>
-                <span data-field="badge">cold</span>
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Developer Diagnostics</h2>
+                <p>Recent query traces show which provider and model returned what in this browser.</p>
               </div>
-              <p class="health-meta">TTFT <span data-field="ttft">-</span></p>
-              <p class="health-meta">Latency <span data-field="latency">-</span></p>
-              <p class="health-meta">Success <span data-field="success">-</span></p>
-              <p class="health-note" data-field="note">No local samples yet.</p>
-            </article>
+              <button id="refresh-query-traces" type="button" class="secondary-button">Refresh Traces</button>
+            </div>
 
-            <article class="health-card" data-provider="together">
-              <div class="health-top">
-                <strong>Together AI</strong>
-                <span data-field="badge">cold</span>
-              </div>
-              <p class="health-meta">TTFT <span data-field="ttft">-</span></p>
-              <p class="health-meta">Latency <span data-field="latency">-</span></p>
-              <p class="health-meta">Success <span data-field="success">-</span></p>
-              <p class="health-note" data-field="note">No local samples yet.</p>
-            </article>
-
-            <article class="health-card" data-provider="fireworks">
-              <div class="health-top">
-                <strong>Fireworks AI</strong>
-                <span data-field="badge">cold</span>
-              </div>
-              <p class="health-meta">TTFT <span data-field="ttft">-</span></p>
-              <p class="health-meta">Latency <span data-field="latency">-</span></p>
-              <p class="health-meta">Success <span data-field="success">-</span></p>
-              <p class="health-note" data-field="note">No local samples yet.</p>
-            </article>
-
-            <article class="health-card" data-provider="custom-openai">
-              <div class="health-top">
-                <strong>Custom OpenAI-Compatible</strong>
-                <span data-field="badge">cold</span>
-              </div>
-              <p class="health-meta">TTFT <span data-field="ttft">-</span></p>
-              <p class="health-meta">Latency <span data-field="latency">-</span></p>
-              <p class="health-meta">Success <span data-field="success">-</span></p>
-              <p class="health-note" data-field="note">No local samples yet.</p>
-            </article>
-          </div>
+            <div id="query-traces" class="trace-list"></div>
+          </section>
         </aside>
       </section>
     </main>
